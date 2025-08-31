@@ -14,7 +14,64 @@ st.set_page_config(
 
 
 # --- Carregamento dos dados ---
-df = pd.read_csv("https://raw.githubusercontent.com/vqrca/dashboard_salarios_dados/refs/heads/main/dados-imersao-final.csv")
+@st.cache_data
+def carregar_dados():
+    """
+    Carrega os dados de salários do repositório GitHub.
+    Implementa tratamento de erros e fallback.
+    """
+    url_dados = "https://raw.githubusercontent.com/vqrca/dashboard_salarios_dados/refs/heads/main/dados-imersao-final.csv"
+    
+    try:
+        with st.spinner("Carregando dados..."):
+            df = pd.read_csv(url_dados)
+            
+        # Validação básica dos dados
+        if df.empty:
+            raise ValueError("Dataset está vazio")
+        
+        # Verifica se as colunas essenciais existem
+        colunas_necessarias = ['ano', 'senioridade', 'contrato', 'tamanho_empresa', 'usd', 'cargo', 'remoto']
+        colunas_faltantes = [col for col in colunas_necessarias if col not in df.columns]
+        
+        if colunas_faltantes:
+            raise ValueError(f"Colunas faltantes no dataset: {', '.join(colunas_faltantes)}")
+        
+        st.success("✅ Dados carregados com sucesso!")
+        return df
+        
+    except Exception as e:
+        st.error(f"❌ Erro ao carregar dados: {str(e)}")
+        st.warning("🔄 Tentando carregar dados de exemplo...")
+        
+        # Fallback com dados de exemplo
+        return criar_dados_exemplo()
+
+def criar_dados_exemplo():
+    """
+    Cria um dataset de exemplo para quando o carregamento principal falha.
+    """
+    import numpy as np
+    
+    # Dados de exemplo
+    dados_exemplo = {
+        'ano': np.random.choice([2021, 2022, 2023, 2024], 100),
+        'senioridade': np.random.choice(['Junior', 'Pleno', 'Senior'], 100),
+        'contrato': np.random.choice(['CLT', 'PJ'], 100),
+        'tamanho_empresa': np.random.choice(['Pequena', 'Media', 'Grande'], 100),
+        'usd': np.random.randint(30000, 150000, 100),
+        'cargo': np.random.choice(['Data Scientist', 'Data Analyst', 'Data Engineer'], 100),
+        'remoto': np.random.choice(['Remoto', 'Presencial', 'Híbrido'], 100),
+        'residencia_iso3': np.random.choice(['BRA', 'USA', 'CAN'], 100)
+    }
+    
+    df_exemplo = pd.DataFrame(dados_exemplo)
+    st.info("🧪 Usando dados de exemplo para demonstração")
+    
+    return df_exemplo
+
+# Carrega os dados
+df = carregar_dados()
 
 
 # --- Barra Lateral (Filtros) ---
